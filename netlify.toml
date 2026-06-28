@@ -1,0 +1,63 @@
+# =============================================================================
+# Netlify configuration — INFITEX Global Advisory
+# This is a pre-built static site (no build step). Netlify just publishes the
+# repository root. Works identically on Cloudflare Pages (which reads _headers
+# and _redirects directly; netlify.toml is ignored there but harmless).
+# =============================================================================
+
+[build]
+  # Site is already built — nothing to compile. Publish the repo root.
+  publish = "."
+  command = ""
+
+[build.environment]
+  # Pin a modern Node just in case a future build step is added.
+  NODE_VERSION = "20"
+
+# Pretty URLs: serve /about instead of /about.html, strip trailing slashes.
+[[redirects]]
+  from = "/home"
+  to = "/index.html"
+  status = 301
+
+# Security + caching headers (mirrors _headers for Cloudflare Pages parity).
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "geolocation=(), microphone=(), camera=(), interest-cohort=()"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains; preload"
+
+# Long-cache static assets (they are content-stable; bust by renaming if needed).
+[[headers]]
+  for = "/styles.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  for = "/app.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  for = "/og-image.png"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+
+# HTML should always revalidate so content edits show up immediately.
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/logo.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  for = "/favicon.svg"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"

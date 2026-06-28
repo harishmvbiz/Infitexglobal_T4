@@ -1,0 +1,14 @@
+# Clean-URL redirects — read natively by Cloudflare Pages and Netlify.
+# Lets visitors use /outsourcing instead of /outsourcing.html.
+
+/home              /index.html          301
+/practices         /outsourcing.html    301
+/for-practices     /outsourcing.html    301
+/business          /industry.html       301
+/for-business      /industry.html       301
+/digitech          /digitech.html       301
+/about             /index.html#about    301
+/contact           /index.html#contact  301
+/privacy           /privacy.html        301
+/terms             /terms.html          301
+/sitemap           /sitemap.html        301
