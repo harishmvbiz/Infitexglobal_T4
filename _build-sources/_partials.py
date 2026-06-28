@@ -2,6 +2,9 @@
 # -*- coding: utf-8 -*-
 import os
 OUT = "/home/claude/infitex-site"
+# Cache-busting versions for static assets (set by build.py from file content hashes).
+CSS_VER = ""
+JS_VER = ""
 
 FONTS = ('<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
 '<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@500;600;700;800&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">')
@@ -342,7 +345,9 @@ def fabs():
     return ('<div class="fab">'
     '<a class="fab-cta" data-booking href="contact.html" data-fab-label="Book a 15-min call" role="button" aria-label="Book a 15-min call">'+cal+'</a>'
     '<a class="wa" href="#" data-open-wa data-fab-label="WhatsApp us" role="button" aria-label="WhatsApp us">'+IC["wa"]+'</a>'
+    '<a class="callfab" href="tel:+918500850526" data-fab-label="Call +91 8500 850 526" aria-label="Call +91 8500 850 526">'+IC["phone"]+'</a>'
     '<button class="mailfab" data-open-mail data-fab-label="Email us" aria-label="Email us">'+IC["mail"]+'</button>'
+    '<button class="qrfab" data-open-qr data-fab-label="Save our contact" aria-label="Show QR code to save our contact">'+IC["qr"]+'</button>'
     '<button id="backTop" aria-label="Back to top">'+IC["top"]+'</button></div>')
 
 SEARCH_INDEX_JS = """<script>window.INFITEX_SEARCH=[
@@ -418,10 +423,10 @@ def page(filename, title, desc, body, jsonld, og_type="website", section_nav=Fal
     '<link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="favicon.svg">'
     '<link rel="sitemap" type="application/xml" title="Sitemap" href="sitemap.xml">'
     +NOFLASH+FONTS+
-    '<link rel="stylesheet" href="styles.css">'
+    ('<link rel="stylesheet" href="styles.css%s">' % (("?v="+CSS_VER) if CSS_VER else ""))+
     '<script type="application/ld+json">%s</script>'
     '</head><body>') % (title,desc,canon,og_type,title,desc,canon,DOMAIN,title,desc,DOMAIN,jsonld_full)
-    tail = (dialogs()+search_overlay()+fabs()+footer()+SEARCH_INDEX_JS+'<script src="app.js" defer></script></body></html>')
+    tail = (dialogs()+search_overlay()+fabs()+footer()+SEARCH_INDEX_JS+('<script src="app.js%s" defer></script></body></html>' % (("?v="+JS_VER) if JS_VER else "")))
     return head + header(filename) + '<main id="main">' + body + '</main>' + tail
 
 # ----------------------------- ORG JSON-LD (shared) -----------------------------

@@ -1,202 +1,116 @@
-# INFITEX Global Advisory — Website Context & Maintenance Guide
+# INFITEX Global Advisory — Website Context
 
-> Master reference for the INFITEX marketing site. Keep this file with the project.
-> It explains what the site is, how it's built, how to edit it, the current
-> configuration, and how to deploy to Netlify or Cloudflare Pages via GitHub.
-
----
-
-## 1. What this is
-
-A fast, accessible, fully static marketing website for **INFITEX Global Advisory** —
-an India-based white-label accounting/bookkeeping **outsourcing** partner and a
-**Digitech** (web/email/SEO) division, serving **Australian** practices and businesses.
-
-- **No framework, no build server required to host.** Plain HTML + one CSS file + one JS file.
-- **Generated** from a small Python build system (see §4) so structure stays consistent.
-- **Theme:** "Meridian" — deep navy + brass on warm paper (light default) with a dark toggle.
-- **Compliance positioning:** INFITEX is *not* a registered Australian tax/BAS agent; the
-  practice always keeps lodgement and sign-off. We *do not publish prices*. This language
-  must be preserved on every page.
+A reference for anyone (developer, marketer, or AI assistant) who needs to understand
+what this website is, how it is built, and the rules it must always respect.
 
 ---
 
-## 2. Pages & key sections
+## 1. What the business is
 
-| File | Purpose | Notable sections |
-|------|---------|------------------|
-| `index.html` | Home | hero + job-status dashboard, software stack, who we help, divisions, how it works, engagement, security (split + visual), Digitech, savings calculator + "Beyond the dollars", testimonials, key dates, About (incl. Vision/Mission/Believe), FAQ, contact, subscribe |
-| `outsourcing.html` | For Practices | hero + dashboard, scope, jobs & frequency, security split, testimonials |
-| `industry.html` | For Business & Industry | hero + dashboard, who we help, services, Virtual CFO, how it works, engagement, security split, **Why INFITEX**, testimonials |
-| `digitech.html` | Digitech (web/email/SEO) | services, what's included, "Looks right on every screen", "Found on Google" (search-ranking visual), animated light-beam process, care plans (3 tiers), Why Digitech |
-| `privacy.html` | Privacy Policy | 16 sections, OAIC/APP-aligned, on-page TOC |
-| `terms.html` | Terms of Use | 14 sections, ACL-aware, on-page TOC |
-| `sitemap.html` | Human sitemap | link index |
+**INFITEX Global Advisory** is an India-based, **white-label accounting & bookkeeping
+outsourcing** and **Digitech** (web/SEO) partner built for **Australian** accounting
+practices and businesses.
 
-Navigation: simple top tabs with **"What we do"** and **"Who we help"** mega-menus
-(desktop hover/click/keyboard; mobile accordion). Footer is condensed: brand + contact +
-socials on the left, three link columns on the right.
+The model: INFITEX *prepares and processes* work behind the client's brand. The
+Australian practice always keeps the client relationship, the **lodgement**, and the
+**sign-off**.
 
----
+### Compliance positioning — NEVER change these claims
+These statements must remain true and visible across the site:
 
-## 3. Current configuration (already set)
+- INFITEX is **NOT** a registered Australian tax or BAS agent.
+- The practice/registered agent **retains lodgement and sign-off**.
+- **No published prices** — pricing is "contact us for the best pricing for your practice".
+- ISO 27001 is described as **alignment / on the roadmap**, never as a current certification.
+- Australian English spelling throughout (organise, recognise, colour, etc.).
 
-In **`app.js`** at the top (`CONFIG` object):
-
-| Key | Value |
-|-----|-------|
-| `whatsapp` | `918500850526` (digits only, country code first → +91 8500 850 526) |
-| `email` | `info@infitexglobal.com` |
-| `web3formsKey` | `348d4025-f324-4e35-9b3f-b7a13bc62f09` (forms are LIVE) |
-| `bookingLink` | `https://calendar.app.google/EJbx9HqLDzSr5vqW7` (Google booking — "Book a call" buttons open this in a new tab) |
-| `domain` | `https://infitexglobal.com` |
-
-Contact details also appear in the header, footer, contact section, privacy/terms,
-and the Organization JSON-LD (`telephone`, `email`). All are set to the values above.
-
-**Forms:** Contact form and the compliance-digest subscribe form POST to
-[Web3Forms](https://web3forms.com) using the key above. Submissions arrive at the email
-registered to that Web3Forms access key. The WhatsApp and "Email us" buttons open a
-pre-drafted message instead (no backend needed).
-
-### To change contact details later
-Edit `app.js` `CONFIG` for WhatsApp/email used by buttons, **and** re-run the build
-(§4) after editing the source, or hand-edit the HTML files if you don't use the build.
+### Contact details (single source of truth)
+| Item | Value |
+|------|-------|
+| Email | info@infitexglobal.com |
+| Phone / mobile | +91 8500 850 526 |
+| WhatsApp | 918500850526 |
+| Booking link | https://calendar.app.google/EJbx9HqLDzSr5vqW7 |
+| Domain | https://infitexglobal.com |
+| Web3Forms key | 348d4025-f324-4e35-9b3f-b7a13bc62f09 |
 
 ---
 
-## 4. How the site is built (optional — only if editing content structurally)
+## 2. Pages (9 total)
 
-The HTML is generated by Python in **`_build-sources/`**:
+| File | Purpose |
+|------|---------|
+| index.html | Home — positioning, who we help, divisions, engagement, security, Digitech, savings calculator, testimonials, About snippet, FAQ |
+| outsourcing.html | For Accounting Practices — scope/compliance cycle, jobs & frequency, how it works, security, key Australian dates, testimonials |
+| industry.html | For Business & Industry — services, Virtual CFO, how it works, engagement, security, dates, testimonials |
+| digitech.html | Digitech — websites, domains/hosting/email, SEO & Google Business Profile |
+| about.html | About — vision, mission, values, experience |
+| contact.html | Contact — enquiry form, WhatsApp/booking/email/QR cards, compliance-dates digest subscribe |
+| privacy.html | Privacy policy (Privacy Act 1988 / APP aligned) |
+| terms.html | Terms of use |
+| sitemap.html | Human-readable sitemap |
+
+Plus sitemap.xml, robots.txt, favicon.svg, logo.svg, og-image.png,
+infitex-contact-qr.svg / .png, and Cloudflare/Netlify config (_headers, _redirects).
+
+---
+
+## 3. Theme — "Eucalypt"
+
+100% CSS-variable driven. Light + dark tokens are declared at the top of styles.css
+(:root and :root[data-theme="dark"]). Re-theming = swap tokens; the change cascades
+to every page.
+
+- Palette: eucalyptus green primary (#2F5E4E) + warm clay accent (#9A5226 / fill #A85E2A)
+  on warm paper (#F7F6F1). Dark mode uses deep green-charcoal backgrounds.
+- Fonts: Schibsted Grotesk (display), Source Sans 3 (body), JetBrains Mono (mono/eyebrows).
+- Theme toggle persists via the header toggle; respects prefers-color-scheme.
+
+---
+
+## 4. Architecture
+
+The site is plain HTML + one CSS file + one JS file, generated by a small Python
+build system. There is no runtime framework — the output is fully static.
 
 ```
-_build-sources/
-  build.py        # page bodies + assembles each .html
-  _partials.py    # header, footer, nav, icons, <head>, JSON-LD, DOMAIN, OUT path
-  validate.py     # validation pass 1 (structure / a11y / links / JSON-LD)
-  validate2.py    # validation pass 2 (deep SEO + nav ARIA + anchor integrity)
+/ (deployable site root)
+|-- *.html               <- generated pages (do NOT hand-edit; regenerate)
+|-- styles.css           <- STATIC, edited directly
+|-- app.js               <- STATIC, edited directly
+|-- sitemap.xml, robots.txt, _headers, _redirects
+|-- favicon.svg, logo.svg, og-image.png, infitex-contact-qr.*
+`-- _build-sources/      <- the generator (kept out of the hosting bundle)
+    |-- build.py         <- page bodies + build_<page>() funcs + write list
+    |-- _partials.py     <- head/page(), header+nav, footer(), fabs(), icons, JSON-LD, search index
+    |-- validate.py      <- structural validator
+    `-- validate2.py     <- SEO/links/accessibility validator
 ```
 
-To rebuild after editing source:
+### Key behaviours baked into the build
+- alt_sections() enforces strictly alternating section backgrounds (zebra) in document
+  order, so adding/removing sections never breaks the rhythm.
+- section() / security_section() / testimonials_section() / calculator() are reusable
+  section builders.
+- A generic slider ([data-tslider] in app.js) powers the testimonials carousel (3-up) and
+  the "Beyond the dollars" benefits carousel (2-up). Per-view count is controlled purely by CSS.
+- Full JSON-LD graph (Organization, WebSite, BreadcrumbList, page types, speakable for
+  GEO) is emitted in each page head.
+- Floating action buttons (fabs()): Book a call, WhatsApp, Call (tel:), Email, Save-contact QR,
+  Back-to-top — with hover/focus labels and attention pulses.
 
-```bash
-cd _build-sources
-# 1) Set OUT to your output folder near the top of _partials.py, validate.py, validate2.py
-#    (e.g. OUT = "/absolute/path/to/site-root")
-python3 build.py        # regenerates all .html into OUT
-python3 validate.py     # expect: 0 issues, 0 warnings
-python3 validate2.py    # expect: 0 issues, 0 warnings, 8 positive checks
-```
-
-`styles.css` and `app.js` are **static** (not generated) — edit them directly.
-You do **not** need Python to host the site — only to regenerate HTML after structural edits.
-For small text tweaks you can edit the `.html` directly, but re-running the build is safer.
-
-### Theme colours
-Defined as CSS variables at the top of `styles.css`:
-`:root { … }` = light (default), `:root[data-theme="dark"] { … }` = dark.
-Brand navy `--primary`, brass `--accent` / `--accent-fill`, eucalyptus `--positive`.
+### Rebuilding
+See INTEGRATION.md -> "Rebuilding the HTML". In short: point OUT at the site root in
+_partials.py, validate.py, validate2.py, run python3 build.py, then both validators
+(must report 0 issues / 0 warnings / 8 positive checks), then restore OUT.
 
 ---
 
-## 5. SEO & accessibility (already done)
+## 5. Editing rules of thumb
 
-- Unique `<title>` (≈55–60 chars) and meta description (≈140–155 chars) per page.
-- Canonical, Open Graph, Twitter Card, `theme-color`, `robots: index,follow` on every page.
-- JSON-LD per page: Organization / ProfessionalService, WebSite + SearchAction (home),
-  Service + `hasOfferCatalog` (service pages), FAQPage, BreadcrumbList.
-- One `<h1>` per page, semantic `<h2>` structure, skip-link, ARIA on nav/dialogs/forms.
-- `sitemap.xml` + `robots.txt` reference `https://infitexglobal.com`.
-- Responsive/mobile-first; light & dark; reduced-motion respected; AA-checked colours.
-
-### After deploying — do these once
-1. **Set the real domain** if not `infitexglobal.com`: update `DOMAIN` in `_partials.py`
-   and rebuild, or find-and-replace `https://infitexglobal.com` across `*.html`,
-   `sitemap.xml`, `robots.txt`.
-2. **Google Search Console:** verify the property and submit `sitemap.xml`.
-3. **Replace the verification placeholder** `GOOGLE_SITE_VERIFICATION` (in `<head>`)
-   with your Search Console token, if using the meta-tag method.
-4. **Booking link:** done — `CONFIG.bookingLink` points to your Google appointment page;
-   "Book a call" buttons open it in a new tab. Change the URL there to update it.
-5. **Testimonials:** the current quotes are placeholders attributed by role/location.
-   Replace with real, permissioned quotes before relying on them (Australian Consumer
-   Law: testimonials must not be misleading).
-6. **Legal:** have an Australian adviser review `privacy.html` / `terms.html` against
-   your actual data flows and entity details.
-
----
-
-## 6. Deploy via GitHub → Netlify or Cloudflare Pages
-
-This bundle is the **site root** — push it to a GitHub repo and connect it.
-
-### One-time: push to GitHub
-```bash
-git init
-git add .
-git commit -m "INFITEX website"
-git branch -M main
-git remote add origin https://github.com/<you>/<repo>.git
-git push -u origin main
-```
-
-### Netlify (GitHub integration)
-1. Netlify → **Add new site → Import an existing project → GitHub** → pick the repo.
-2. Build command: **(leave empty)**.  Publish directory: **`.`** (repo root).
-   (These are already declared in `netlify.toml`.)
-3. Deploy. Add your custom domain under **Domain settings**; HTTPS is automatic.
-
-### Cloudflare Pages (GitHub integration)
-1. Cloudflare → **Workers & Pages → Create → Pages → Connect to Git** → pick the repo.
-2. Framework preset: **None**.  Build command: **(empty)**.  Output directory: **`/`** (root).
-3. Deploy. Add your custom domain; HTTPS is automatic.
-   Cloudflare reads `_headers` and `_redirects` natively.
-
-### Files that make hosting clean
-- `netlify.toml` — Netlify publish + headers + caching (ignored by Cloudflare, harmless).
-- `_headers` — security + caching headers (Cloudflare Pages **and** Netlify).
-- `_redirects` — pretty URLs, e.g. `/digitech` → `/digitech.html` (both platforms).
-
-No server, database, or environment variables are required. The only external service
-is Web3Forms (key already embedded) for form delivery.
-
----
-
-## 7. File map (what's in this bundle)
-
-```
-index.html  outsourcing.html  industry.html  digitech.html
-privacy.html  terms.html  sitemap.html
-styles.css            # all styling + theme tokens
-app.js                # interactivity + CONFIG (contact, web3forms key)
-assets/ (or root)     # logo.svg, favicon.svg, og-image.png
-robots.txt  sitemap.xml
-netlify.toml  _headers  _redirects   # deploy config
-INTEGRATION_GUIDE.md  CONTEXT.md      # docs
-_build-sources/       # Python generator + validators (not served)
-```
-
----
-
-## 8. Change history (high level)
-
-- **Round 1:** Restructured nav into "What we do" / "Who we help" mega-menus; SEO pass.
-- **Round 2:** New **Meridian** theme (navy + brass on paper, light default + dark toggle);
-  Digitech 5-step light-beam flow, 3-tier care plans, what's-included grid.
-- **Round 3:** Footer optimised; security sections rebuilt as balanced split + visual;
-  "Why INFITEX" added to Industry; home section gaps fixed; non-financial "Beyond the
-  dollars" savings; Vision/Mission/Believe in About; "Email us" button; contact details
-  → +91 8500 850 526 / info@infitexglobal.com; subscribe frequency removed; extensive
-  OAIC-aligned Privacy & Terms; Digitech "Found on Google" + responsive device visuals.
-- **Round 4:** Practices security split; **job-status dashboard** widget on Practices &
-  Industry heroes; testimonials section (home/practices/industry).
-- **Round 5:** Subscribe card empty-space fixed (added "what you'll get" list).
-- **Round 6 (this):** Web3Forms key wired (forms live); JSON-LD telephone corrected;
-  deploy scaffolding (`netlify.toml`, `_headers`, `_redirects`) + this context file.
-
-Validation after every round: `validate.py` and `validate2.py` → **0 issues, 0 warnings**.
-
----
-
-*This document is general guidance, not legal advice. Obtain professional advice for your
-specific circumstances, especially regarding privacy, terms and consumer-law compliance.*
+- Copy/markup of a page -> edit the matching build_<page>() in _build-sources/build.py,
+  then rebuild. Never edit the generated .html directly (it will be overwritten).
+- Styling -> edit styles.css directly (it is not regenerated).
+- Behaviour -> edit app.js directly (it is not regenerated).
+- Shared header/footer/floaters/icons/JSON-LD -> _build-sources/_partials.py, then rebuild.
+- Keep the compliance claims in section 1 intact in any edit.
