@@ -340,9 +340,9 @@ def search_overlay():
 def fabs():
     cal = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>'
     return ('<div class="fab">'
-    '<a class="fab-cta" data-booking href="contact.html" role="button" aria-label="Book a quick call">'+cal+'<span>Book a call</span></a>'
-    '<a class="wa" href="#" data-open-wa role="button" aria-label="WhatsApp us">'+IC["wa"]+'</a>'
-    '<button data-open-mail aria-label="Email us">'+IC["mail"]+'</button>'
+    '<a class="fab-cta" data-booking href="contact.html" data-fab-label="Book a 15-min call" role="button" aria-label="Book a 15-min call">'+cal+'</a>'
+    '<a class="wa" href="#" data-open-wa data-fab-label="WhatsApp us" role="button" aria-label="WhatsApp us">'+IC["wa"]+'</a>'
+    '<button class="mailfab" data-open-mail data-fab-label="Email us" aria-label="Email us">'+IC["mail"]+'</button>'
     '<button id="backTop" aria-label="Back to top">'+IC["top"]+'</button></div>')
 
 SEARCH_INDEX_JS = """<script>window.INFITEX_SEARCH=[
