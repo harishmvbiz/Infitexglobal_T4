@@ -1,11 +1,23 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """Generate the INFITEX static site from shared partials."""
-import json, html
+import json, html, re
 import _partials as P
 from _partials import IC, DOMAIN, ORG_LD, page, breadcrumb, OUT
 
 def ico(name): return IC[name]
+
+def alt_sections(body):
+    """Enforce strictly alternating section backgrounds in document order.
+    The first content <section class="section"> becomes 'alt', the next plain,
+    and so on — so adding/removing sections never breaks the zebra pattern.
+    Only matches the content-section wrapper (not .hero, .section-nav, etc.)."""
+    state = {"n": 0}
+    def repl(m):
+        alt = (state["n"] % 2 == 0)
+        state["n"] += 1
+        return '<section class="section%s"%s' % (" alt" if alt else "", m.group(1))
+    return re.sub(r'<section class="section(?: alt)?"(\s|>)', repl, body)
 
 # ---------------------------------------------------------------- dashboard widget
 def status_card(cap, rows, foot="Indicative layout — not a live client file."):
@@ -84,7 +96,7 @@ TESTIMONIALS = [
 
 def testimonials_section(items=None, eyebrow="What clients say", title="Trusted by practices and businesses",
                          intro="A few words from the practices and businesses we support across Australia. Names withheld to respect client confidentiality.",
-                         id="testimonials", alt=False):
+                         id="testimonials", alt=False, slider=False):
     items = items or TESTIMONIALS
     cards = ""
     for quote, who, org in items:
@@ -92,18 +104,52 @@ def testimonials_section(items=None, eyebrow="What clients say", title="Trusted 
                   '<blockquote>%s</blockquote>'
                   '<figcaption><span class="tname">%s</span><span class="torg">%s</span></figcaption>'
                   '</figure>') % (quote, who, org)
-    inner = '<div class="tgrid">%s</div>' % cards
+    if slider:
+        prev = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>'
+        nxt = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>'
+        inner = ('<div class="tslider" data-tslider>'
+                 '<div class="tslider-viewport"><div class="tslider-track">%s</div></div>'
+                 '<div class="tslider-controls">'
+                 '<button class="icon-btn tslider-arrow" type="button" data-tprev aria-label="Previous reviews">%s</button>'
+                 '<div class="tslider-dots" data-tdots></div>'
+                 '<button class="icon-btn tslider-arrow" type="button" data-tnext aria-label="Next reviews">%s</button>'
+                 '</div></div>') % (cards, prev, nxt)
+    else:
+        inner = '<div class="tgrid">%s</div>' % cards
     return section(id, eyebrow, title, intro, inner, alt=alt)
 
 def security_split(feats_html, caption):
     visual = ('<div class="sec-visual" aria-hidden="true">'
-        '<svg viewBox="0 0 320 300" role="img" xmlns="http://www.w3.org/2000/svg">'
-        '<rect x="20" y="20" width="280" height="260" rx="18" fill="var(--bg-3)" stroke="var(--line)"/>'
-        '<path d="M160 60l54 22v40c0 38-26 64-54 78-28-14-54-40-54-78V82l54-22z" fill="none" stroke="var(--accent)" stroke-width="3"/>'
-        '<path d="M138 150l16 16 30-34" fill="none" stroke="var(--positive)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>'
-        '<rect x="64" y="232" width="192" height="10" rx="5" fill="var(--line-2)"/>'
-        '<rect x="64" y="232" width="120" height="10" rx="5" fill="var(--accent)"/>'
-        '<circle cx="92" cy="96" r="6" fill="var(--accent-2)"/><circle cx="228" cy="96" r="6" fill="var(--accent-2)"/>'
+        '<svg viewBox="0 0 340 300" role="img" xmlns="http://www.w3.org/2000/svg">'
+        '<defs><linearGradient id="secsh" x1="0" y1="0" x2="0" y2="1">'
+        '<stop offset="0" stop-color="var(--primary)" stop-opacity=".16"/>'
+        '<stop offset="1" stop-color="var(--primary)" stop-opacity="0"/></linearGradient></defs>'
+        # framing panel
+        '<rect x="14" y="14" width="312" height="272" rx="20" fill="var(--bg-3)" stroke="var(--line)"/>'
+        # data-flow nodes + dashed links feeding the shield
+        '<g stroke="var(--accent-2)" stroke-width="2" fill="none" opacity=".7" stroke-dasharray="3 6" stroke-linecap="round">'
+        '<path d="M58 92 H120"/><path d="M282 92 H220"/><path d="M58 208 H120"/><path d="M282 208 H220"/></g>'
+        '<g fill="var(--accent-2)">'
+        '<circle cx="54" cy="92" r="5"/><circle cx="286" cy="92" r="5"/>'
+        '<circle cx="54" cy="208" r="5"/><circle cx="286" cy="208" r="5"/></g>'
+        # shield
+        '<path d="M170 54l60 24v44c0 44-30 74-60 90-30-16-60-46-60-90V78l60-24z" fill="url(#secsh)" stroke="var(--accent)" stroke-width="3"/>'
+        # padlock inside shield
+        '<rect x="146" y="132" width="48" height="40" rx="7" fill="var(--bg-2)" stroke="var(--primary)" stroke-width="3"/>'
+        '<path d="M153 132v-9a17 17 0 0 1 34 0v9" fill="none" stroke="var(--primary)" stroke-width="3"/>'
+        '<circle cx="170" cy="148" r="5" fill="var(--accent)"/>'
+        '<rect x="168" y="150" width="4" height="12" rx="2" fill="var(--accent)"/>'
+        # verified badge
+        '<circle cx="214" cy="170" r="17" fill="var(--bg-2)" stroke="var(--positive)" stroke-width="2.5"/>'
+        '<path d="M206 170l5 5 11-12" fill="none" stroke="var(--positive)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'
+        # encrypted data row + progress
+        '<g fill="var(--line-2)">'
+        '<rect x="104" y="244" width="20" height="14" rx="3"/><rect x="130" y="244" width="20" height="14" rx="3"/>'
+        '<rect x="156" y="244" width="20" height="14" rx="3"/><rect x="182" y="244" width="20" height="14" rx="3"/>'
+        '<rect x="208" y="244" width="20" height="14" rx="3"/></g>'
+        '<rect x="104" y="244" width="20" height="14" rx="3" fill="var(--accent)"/>'
+        '<rect x="130" y="244" width="20" height="14" rx="3" fill="var(--accent)"/>'
+        '<rect x="156" y="244" width="20" height="14" rx="3" fill="var(--accent)" opacity=".5"/>'
         '</svg>'
         '<p class="sec-cap">%s</p></div>') % caption
     return '<div class="split-2 split-2--rev">%s%s</div>' % (feats_html, visual)
@@ -135,7 +181,7 @@ def feat(icon, b, p):
     return '<li><div class="ico">%s</div><div><b>%s</b><p>%s</p></div></li>' % (ico(icon), b, p)
 
 # ---------------------------------------------------------------- shared: contact section
-def contact_section():
+def contact_section(page_mode=False):
     form = ('<form id="contactForm" class="card" novalidate>'
         '<h3 class="mt-0">Send an enquiry</h3>'
         '<p class="form-note" style="margin:4px 0 14px">We reply by email — see our <a href="privacy.html">Privacy</a> page.</p>'
@@ -143,65 +189,27 @@ def contact_section():
         '<button type="submit" class="btn btn-primary btn-block">Send enquiry</button>'
         '<p class="form-status" id="contactStatus" role="status"></p>'
         '</form>')
-    cards = ('<div class="contact-cards">'
-        '<article class="card"><div class="ico">%s</div><h3>WhatsApp</h3>'
-        '<p>Prefer chat? We\'ll draft a tidy message and open WhatsApp for you to send.</p>'
-        '<button class="btn btn-ghost" data-open-wa>Start a WhatsApp enquiry</button></article>'
-        '<article class="card"><div class="ico">%s</div><h3>Book a 15-minute call</h3>'
-        '<p>A short, no-pressure intro call to see whether we\'re a fit for your practice.</p>'
-        '<a class="btn btn-ghost" data-booking href="index.html#contact">Book a time</a></article>'
-        '<article class="card"><div class="ico">%s</div><h3>Email</h3>'
-        '<p><a href="mailto:info@infitexglobal.com">info@infitexglobal.com</a><br>'
-        '<a href="tel:+918500850526">+91 8500 850 526</a> (AEST/AEDT-friendly hours)</p>'
-        '<button class="btn btn-ghost" data-open-mail style="margin-top:12px">Email us</button></article>'
+    cards = ('<div class="contact-cards contact-cards--compact">'
+        '<article class="card cc-row"><div class="ico">%s</div><div class="cc-body"><h3>WhatsApp</h3>'
+        '<p>We\'ll draft a tidy message and open WhatsApp for you.</p>'
+        '<button class="btn btn-ghost btn-sm" data-open-wa>Start a WhatsApp enquiry</button></div></article>'
+        '<article class="card cc-row"><div class="ico">%s</div><div class="cc-body"><h3>Book a 15-minute call</h3>'
+        '<p>A short, no-pressure intro call to see whether we\'re a fit.</p>'
+        '<a class="btn btn-ghost btn-sm" data-booking href="contact.html">Book a time</a></div></article>'
+        '<article class="card cc-row"><div class="ico">%s</div><div class="cc-body"><h3>Email</h3>'
+        '<p>Drop us a line and we\'ll reply by email, usually within one business day.<br>'
+        '<a href="mailto:info@infitexglobal.com">info@infitexglobal.com</a><br>'
+        '<a href="tel:+918500850526">+91 8500 850 526</a> · AEST/AEDT-friendly hours</p>'
+        '<button class="btn btn-ghost btn-sm" data-open-mail>Email us</button></div></article>'
+        '<article class="card cc-row cc-qr"><button type="button" class="qr-mini" data-open-qr aria-label="Show QR code to save our contact"><img src="infitex-contact-qr.svg" '
+        'alt="QR code to save INFITEX Global Advisory contact details" width="92" height="92" loading="lazy"></button>'
+        '<div class="cc-body"><h3>Save our contact</h3>'
+        '<p>Tap the code (or scan with your phone camera) to save us — name, mobile and email. Works on iPhone &amp; Android, no app needed.</p></div></article>'
         '</div>') % (ico("wa"), ico("cal"), ico("mail"))
-    # QR card spans the full width, below the form + cards row
-    qr_card = ('<article class="card qr-card qr-card--wide">'
-        '<div class="qr-card__body">'
-        '<div class="qr-wrap"><img src="infitex-contact-qr.svg" alt="QR code to save INFITEX Global Advisory contact details" '
-        'width="170" height="170" loading="lazy"></div>'
-        '<div class="qr-card__text"><div class="ico">%s</div><h3>Save our contact</h3>'
-        '<p>Scan with your phone camera (iPhone or Android) to save INFITEX Global Advisory straight to your contacts — name, mobile and email, ready to go.</p>'
-        '<p class="qr-hint">Works on iPhone &amp; Android · no app needed</p></div>'
-        '<div class="qr-scan-art" aria-hidden="true">'
-        '<svg viewBox="0 0 300 230" xmlns="http://www.w3.org/2000/svg" role="img">'
-        # scan frame corner brackets (left, around an implied QR)
-        '<path d="M24 40h-14v14M10 150v14h14M118 40h14v14M132 150v14h-14" fill="none" '
-        'stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/>'
-        # small QR glyph inside the frame
-        '<g fill="var(--muted)" opacity=".55">'
-        '<rect x="28" y="58" width="22" height="22" rx="2"/><rect x="92" y="58" width="22" height="22" rx="2"/>'
-        '<rect x="28" y="122" width="22" height="22" rx="2"/>'
-        '<rect x="34" y="64" width="10" height="10" fill="var(--bg-2)"/><rect x="98" y="64" width="10" height="10" fill="var(--bg-2)"/>'
-        '<rect x="34" y="128" width="10" height="10" fill="var(--bg-2)"/>'
-        '<rect x="62" y="58" width="8" height="8"/><rect x="74" y="70" width="8" height="8"/>'
-        '<rect x="62" y="86" width="8" height="8"/><rect x="92" y="92" width="8" height="8"/>'
-        '<rect x="104" y="104" width="8" height="8"/><rect x="62" y="116" width="8" height="8"/>'
-        '<rect x="80" y="122" width="8" height="8"/><rect x="98" y="130" width="8" height="8"/>'
-        '<rect x="116" y="116" width="8" height="8"/></g>'
-        # scanning beam across the QR
-        '<line x1="14" y1="102" x2="128" y2="102" stroke="var(--accent-fill)" stroke-width="2.5" '
-        'stroke-linecap="round" opacity=".9"><animate attributeName="y1" values="58;144;58" dur="2.6s" '
-        'repeatCount="indefinite"/><animate attributeName="y2" values="58;144;58" dur="2.6s" repeatCount="indefinite"/></line>'
-        # phone (right), tilted, screen shows a checkmark = saved
-        '<g transform="rotate(8 220 120)">'
-        '<rect x="176" y="36" width="116" height="168" rx="18" fill="var(--bg-3)" stroke="var(--line)" stroke-width="2.5"/>'
-        '<rect x="186" y="54" width="96" height="132" rx="8" fill="var(--bg-2)"/>'
-        '<rect x="214" y="44" width="40" height="5" rx="2.5" fill="var(--line-2)"/>'
-        # contact card on screen
-        '<circle cx="216" cy="92" r="14" fill="none" stroke="var(--accent)" stroke-width="2.5"/>'
-        '<path d="M210 92l4 4 8-9" fill="none" stroke="var(--positive)" stroke-width="2.6" '
-        'stroke-linecap="round" stroke-linejoin="round"/>'
-        '<rect x="238" y="84" width="34" height="6" rx="3" fill="var(--muted)" opacity=".6"/>'
-        '<rect x="238" y="96" width="24" height="5" rx="2.5" fill="var(--muted)" opacity=".4"/>'
-        '<rect x="196" y="120" width="76" height="6" rx="3" fill="var(--line-2)"/>'
-        '<rect x="196" y="134" width="60" height="6" rx="3" fill="var(--line-2)"/>'
-        '<rect x="196" y="158" width="76" height="18" rx="6" fill="var(--accent-fill)" opacity=".85"/>'
-        '</g>'
-        '</svg></div>'
-        '</div></article>') % ico("phone")
-    inner = ('<div class="contact-grid">%s%s</div>'
-             '<div class="contact-qr-row">%s</div>') % (form, cards, qr_card)
+    inner = '<div class="contact-grid">%s%s</div>' % (form, cards)
+    if page_mode:
+        return ('<section class="section" id="contact" aria-label="Contact form and options">'
+                '<div class="shell">%s</div></section>') % inner
     return section("contact", "Contact", "Talk to us about your practice",
                    "Tell us what you need help with and we will come back to you by email. No obligation, and no pressure to commit.",
                    inner, alt=False)
@@ -236,8 +244,8 @@ def subscribe_section():
                    "An occasional, opt-in email with upcoming BAS, IAS, super and tax reference dates. No spam, unsubscribe anytime.",
                    inner, alt=True)
 
-def cta_band(title, text, primary=("Request a pilot", "index.html#contact"), ghost=("Book a call", None)):
-    g = '<a class="btn btn-ghost" data-booking href="index.html#contact">%s</a>' % ghost[0] if ghost[1] is None else '<a class="btn btn-ghost" href="%s">%s</a>' % (ghost[1], ghost[0])
+def cta_band(title, text, primary=("Request a pilot", "contact.html"), ghost=("Book a call", None)):
+    g = '<a class="btn btn-ghost" data-booking href="contact.html">%s</a>' % ghost[0] if ghost[1] is None else '<a class="btn btn-ghost" href="%s">%s</a>' % (ghost[1], ghost[0])
     inner = ('<div class="cta-band"><span class="eyebrow">Low-risk pilot</span>'
         '<h2 data-tw>%s</h2><p class="lead" style="margin-inline:auto;max-width:60ch" data-tw>%s</p>'
         '<div class="hero-cta"><a class="btn btn-primary" href="%s">%s</a>%s</div></div>'
@@ -318,6 +326,11 @@ def dates_table():
             '<tbody>%s</tbody></table></div>'
             '<p class="note" style="margin-top:14px">Indicative only and subject to change — always confirm current dates with the ATO and your lodgement program.</p>' % rows)
 
+def dates_section(alt=False):
+    return section("dates", "Key Australian dates", "Compliance dates at a glance",
+        "A quick reference for common Australian obligations. Always confirm current dates with the ATO.",
+        dates_table(), alt=alt)
+
 # ---------------------------------------------------------------- calculator
 def calculator():
     return ('<div class="calc" id="calc">'
@@ -335,14 +348,14 @@ def calculator():
         '<div class="calc-out">'
         '<span class="eyebrow">Indicative annual saving</span>'
         '<div class="figure"><span id="calcLow">$0</span> – <span id="calcHigh">$0</span></div>'
-        '<p class="note" style="margin-top:14px">Based on <span id="calcHrs">0 hrs/yr</span> of outsourceable work and an indicative 40–60% saving band across ~46 working weeks. This is a rough guide in AUD, not a quote — contact us for the best pricing for your practice.</p>'
+        '<p class="note" style="margin-top:14px">Based on <span id="calcHrs">0 hrs/yr</span> of outsourceable work and an indicative 40–60% saving band across ~46 working weeks. This is an indicative estimate in AUD, not a quote — contact us for the best pricing for your practice.</p>'
         '</div></div>')
 
 # ---------------------------------------------------------------- section nav (home)
 def section_nav():
     items = [("Who we help", "#who"), ("Stack", "#stack"),
              ("Engagement", "#engagement"), ("Security", "#security"), ("Calculator", "#calculator"),
-             ("Reviews", "#testimonials"), ("Key dates", "#dates"), ("About", "#about"), ("FAQ", "#faq"), ("Contact", "#contact")]
+             ("Reviews", "#testimonials"), ("About", "#about"), ("FAQ", "#faq"), ("Contact", "contact.html")]
     lis = "".join('<li><a href="%s">%s</a></li>' % (u, n) for n, u in items)
     return '<nav class="section-nav" aria-label="On this page"><div class="shell"><ul>%s</ul></div></nav>' % lis
 
@@ -353,21 +366,31 @@ def build_home():
         '<span class="eyebrow">Outsourced accounting, finance &amp; Virtual CFO · Australia</span>'
         '<h1>A finance team that works to <span class="accent">your</span> standards.</h1>'
         '<p class="answer-lede">INFITEX Global Advisory is an India-based, white-label accounting and bookkeeping outsourcing partner for Australian accounting practices and businesses — covering bookkeeping, payroll and STP, BAS, year-end, tax, SMSF, management reporting and Virtual CFO, while your practice keeps lodgement and sign-off.</p>'
-        '<div class="hero-cta"><a class="btn btn-primary" href="#contact">Request a pilot</a>'
-        '<a class="btn btn-ghost" data-booking href="index.html#contact">Book a 15-min call</a></div>'
+        '<div class="hero-cta"><a class="btn btn-primary" href="contact.html">Request a pilot</a>'
+        '<a class="btn btn-ghost" data-booking href="contact.html">Book a 15-min call</a></div>'
         '<ul class="hero-paths hero-paths--list">'
-        '<li><a class="path-chip" href="outsourcing.html"><b>For practices</b> <span>— white-label</span></a></li>'
-        '<li><a class="path-chip" href="industry.html"><b>For business</b> <span>— finance &amp; Virtual CFO</span></a></li>'
-        '<li><a class="path-chip" href="digitech.html"><b>Digitech</b> <span>— web &amp; SEO</span></a></li></ul>'
+        '<li><a class="path-chip" href="outsourcing.html"><b>For practices</b> <span>— White-label</span></a></li>'
+        '<li><a class="path-chip" href="industry.html"><b>For business</b> <span>— Finance &amp; Virtual CFO</span></a></li>'
+        '<li><a class="path-chip" href="digitech.html"><b>Digitech</b> <span>— Web &amp; SEO</span></a></li></ul>'
         '</div>'
+        '<div class="hero-aside">'
         '<aside class="hero-pilot" aria-labelledby="hero-pilot-title">'
         '<span class="eyebrow">Low-risk pilot</span>'
         '<h2 id="hero-pilot-title">Start with a low-risk pilot</h2>'
         '<p>Pick a small, defined scope. See the quality, the communication and the turnaround for yourself before you scale.</p>'
-        '<div class="hero-cta"><a class="btn btn-primary" href="#contact">Request a pilot</a>'
-        '<a class="btn btn-ghost" data-booking href="index.html#contact">Book a call</a></div>'
+        '<div class="hero-cta"><a class="btn btn-primary" href="contact.html">Request a pilot</a>'
+        '<a class="btn btn-ghost" data-booking href="contact.html">Book a call</a></div>'
         '</aside>'
-        '</div></div></section>')
+        '<div class="hero-contact" aria-label="Quick contact options">'
+        '<span class="eyebrow">Talk to us</span>'
+        '<div class="hero-contact-actions">'
+        '<button type="button" class="hc-btn" data-open-wa><span class="hc-ic">%s</span><span>WhatsApp us</span></button>'
+        '<a class="hc-btn" href="contact.html"><span class="hc-ic">%s</span><span>Send an enquiry</span></a>'
+        '<button type="button" class="hc-btn" data-open-mail><span class="hc-ic">%s</span><span>Email us</span></button>'
+        '<button type="button" class="hc-btn" data-open-qr><span class="hc-ic">%s</span><span>Save our contact</span></button>'
+        '</div></div>'
+        '</div>'
+        '</div></div></section>') % (ico("wa"), ico("doc"), ico("mail"), ico("qr"))
 
     who = ('<div class="grid grid-2">'
         '<article class="division card"><span class="tag">Who we help · 01</span>'
@@ -420,36 +443,15 @@ def build_home():
     s_eng = section("engagement", "Engagement models", "Flexible ways to work together",
         "Choose the model that suits your practice today — and change it as your needs change.", eng)
 
-    cyc = ('<ul class="cycle-list">'
-        '<li><span class="mark">01</span><div><b>Bookkeeping &amp; reconciliations</b><span>Day-to-day books kept accurate, coded and current.</span></div></li>'
-        '<li><span class="mark">02</span><div><b>Accounts payable &amp; receivable</b><span>Bills and invoices processed, matched and chased.</span></div></li>'
-        '<li><span class="mark">03</span><div><b>Payroll &amp; STP</b><span>Pay runs prepared and Single Touch Payroll ready for lodgement.</span></div></li>'
-        '<li><span class="mark">04</span><div><b>BAS / IAS preparation</b><span>Activity statements drafted for your review and lodgement.</span></div></li>'
-        '<li><span class="mark">05</span><div><b>Year-end financials &amp; tax</b><span>Financial statements and company/trust returns prepared to your standards.</span></div></li>'
-        '<li><span class="mark">06</span><div><b>SMSF &amp; workpapers</b><span>SMSF accounts in BGL/Class with clean, traceable workpapers.</span></div></li>'
-        '</ul><div style="margin-top:22px"><a class="btn btn-ghost" href="outsourcing.html">See the full compliance cycle →</a></div>')
-    s_out = section("outsourcing", "The compliance cycle", "From source documents to sign-off-ready",
-        "We cover the cycle so your team can focus on advice, relationships and growth.", cyc, alt=True)
-
     sec_feats = ('<ul class="feature-list feature-grid-2">'
         + feat("lock", "Role-based, least-privilege access", "Named individuals only, with access scoped to the systems and files each job needs.")
         + feat("shield", "Confidentiality by default", "Signed confidentiality agreements and clear handling rules for client data.")
         + feat("check", "Maker–checker controls", "Independent review on every job before it reaches your queue.")
         + feat("cog", "ISO 27001 alignment (on roadmap)", "We are aligning our controls to ISO 27001. This is a direction of travel, not a current certification claim.")
         + '</ul>')
-    sec_visual = ('<div class="sec-visual" aria-hidden="true">'
-        '<svg viewBox="0 0 320 300" role="img" xmlns="http://www.w3.org/2000/svg">'
-        '<rect x="20" y="20" width="280" height="260" rx="18" fill="var(--bg-3)" stroke="var(--line)"/>'
-        '<path d="M160 60l54 22v40c0 38-26 64-54 78-28-14-54-40-54-78V82l54-22z" fill="none" stroke="var(--accent)" stroke-width="3"/>'
-        '<path d="M138 150l16 16 30-34" fill="none" stroke="var(--positive)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>'
-        '<rect x="64" y="232" width="192" height="10" rx="5" fill="var(--line-2)"/>'
-        '<rect x="64" y="232" width="120" height="10" rx="5" fill="var(--accent)"/>'
-        '<circle cx="92" cy="96" r="6" fill="var(--accent-2)"/><circle cx="228" cy="96" r="6" fill="var(--accent-2)"/>'
-        '</svg>'
-        '<p class="sec-cap">Every engagement is set up with scoped access, independent review and signed confidentiality.</p></div>')
     s_sec = section("security", "Security &amp; trust", "Your clients' data, handled carefully",
         "Security isn't a bolt-on. It's how we set up every engagement from day one.",
-        '<div class="split-2 split-2--rev">%s%s</div>' % (sec_feats, sec_visual))
+        security_split(sec_feats, "Every engagement is set up with scoped access, independent review and signed confidentiality."))
 
     dig = ('<div class="grid grid-3">'
         + card("globe", "Websites that convert", "Fast, accessible, mobile-first sites built for accounting and bookkeeping practices.", "digitech.html")
@@ -469,7 +471,7 @@ def build_home():
         + '</div>'
         '<p class="note" style="margin-top:16px">Harder to put a number on — but often the first thing practices say they notice.</p>'
         '</div>')
-    s_calc = section("calculator", "Savings calculator", "A rough sense of what outsourcing could free up",
+    s_calc = section("calculator", "Savings calculator", "Estimate what outsourcing could free up",
         "Move the sliders for an indicative annual range in AUD. It's a guide to start a conversation, not a quote.",
         calculator() + soft_savings, alt=True)
 
@@ -477,25 +479,15 @@ def build_home():
         "A quick reference for common Australian obligations. Always confirm current dates with the ATO.",
         dates_table())
 
-    about = ('<div class="about-prose prose">'
-        '<p data-tw>INFITEX Global Advisory is an India-based accounting outsourcing and Digitech partner built specifically for Australian accounting and bookkeeping practices and the businesses they serve. We exist to be the dependable, accountable team behind your team — and we have built our reputation one carefully delivered job at a time.</p>'
-        '<p>Our leadership and senior reviewers bring more than eight years of hands-on Australian compliance experience, with people who have worked the full cycle of a practice — from data entry and bank reconciliations through to BAS, year-end financials, company and trust returns and SMSF. We understand how an Australian practice actually runs at month-end and through the BAS and tax-season peaks, because we have lived those deadlines. That practitioner mindset shapes everything: clean workpapers, sensible coding, sound judgement on what to query, and work that is genuinely ready for your review rather than half-finished.</p>'
-        '<p>We are deliberately not a tax or BAS agent. Our job is to prepare and process accurately, to your standards and templates, so your registered professionals can review, sign off and lodge with confidence. That line never blurs — your practice keeps the client relationship, the professional judgement, the lodgement and the sign-off, every time.</p>'
-        '<p>We work natively in the software you already use — Xero, XPM, MYOB, QuickBooks, Reckon, BGL, Class, Karbon, Dext, Hubdoc and FYI Docs — so there is no migration and no retraining of your team. A named, accountable individual (or a dedicated team) is assigned to your practice, supported by an independent maker–checker review on every job, role-based least-privilege access and signed confidentiality. We are aligning our controls to ISO 27001 as a direction of travel.</p>'
-        '<p>Practices and businesses choose us for three reasons: the quality and traceability of the work, plain-English communication without jargon or surprises, and the overnight rhythm the India–Australia time difference makes possible — work sent at the close of your day is reviewed and ready for your morning, smoothing peak-period workloads without adding local headcount, recruitment risk or permanent overhead.</p>'
+    about = ('<div class="about-snippet">'
+        '<p class="lead">INFITEX Global Advisory is an India-based, white-label accounting outsourcing and Digitech partner built for Australian practices and businesses. Our leadership and senior reviewers bring 8+ years of hands-on Australian compliance experience — and we keep the line clear: we prepare and process to your standards, while your practice keeps the client, the lodgement and the sign-off.</p>'
+        '<div class="vmb-grid vmb-grid--mini">'
+        '<article class="vmb-card"><div class="ico">%s</div><h3>Vision</h3><p>The most trusted offshore finance &amp; Digitech partner for Australia — invisible to your clients, indispensable to you.</p></article>'
+        '<article class="vmb-card"><div class="ico">%s</div><h3>Mission</h3><p>Dependable capacity and clarity — accurate preparation, on time, to your standards.</p></article>'
+        '<article class="vmb-card"><div class="ico">%s</div><h3>We believe</h3><p>The compliance line is sacred, and good work plus plain English beats hype.</p></article>'
         '</div>'
-        '<div class="grid grid-2 about-cards">'
-        '<div class="card"><div class="ico">%s</div><h3>What we are</h3><p>A white-label preparation and processing team, native to your software, working under your brand and your sign-off.</p></div>'
-        '<div class="card"><div class="ico">%s</div><h3>What we are not</h3><p>We are not a registered Australian tax or BAS agent, and we never contact your clients. Lodgement and sign-off stay with your practice.</p></div>'
-        '</div>'
-        '<div class="vmb-grid">'
-        '<article class="vmb-card"><div class="ico">%s</div><h3>Our vision</h3>'
-        '<p>To be the most trusted offshore finance and Digitech partner for Australian practices and businesses — invisible to your clients, indispensable to you.</p></article>'
-        '<article class="vmb-card"><div class="ico">%s</div><h3>Our mission</h3>'
-        '<p>To give every practice dependable capacity and clarity — accurate preparation, on time, to your standards — so your people are free to advise, grow and look after clients.</p></article>'
-        '<article class="vmb-card"><div class="ico">%s</div><h3>What we believe</h3>'
-        '<p>That the compliance line is sacred, that people deserve named and accountable teams, and that good work plus plain-English communication beats hype every time.</p></article>'
-        '</div>') % (ico("users"), ico("shield"), ico("target"), ico("bolt"), ico("check"))
+        '<div style="margin-top:22px"><a class="btn btn-primary" href="about.html">Read more about INFITEX →</a></div>'
+        '</div>') % (ico("target"), ico("bolt"), ico("check"))
     s_about = section("about", "About INFITEX", "A quiet, reliable extension of your practice",
         "Built for Australian practices, careful with the compliance line, and easy to work with.", about)
 
@@ -516,11 +508,11 @@ def build_home():
         "Start with a low-risk pilot",
         "Pick a small, defined scope. See the quality, the communication and the turnaround for yourself before you scale.")
 
-    s_test = testimonials_section(eyebrow="Our stories", alt=True)
+    s_test = testimonials_section(eyebrow="Our stories", alt=True, slider=True)
 
-    body = (hero + section_nav() + s_stack + s_who + s_div + s_eng + s_out + s_sec
-            + s_dig + s_calc + s_test + s_dates + s_about + s_faq
-            + contact_section() + subscribe_section())
+    body = (hero + section_nav() + s_stack + s_who + s_div + s_eng + s_sec
+            + s_dig + s_calc + s_test + s_about + s_faq)
+    body = alt_sections(body)
 
     website_ld = json.dumps({
         "@context": "https://schema.org", "@type": "WebSite",
@@ -563,8 +555,8 @@ def build_outsourcing():
         '<p class="answer-lede">For Australian accounting practices, INFITEX prepares and reviews the full compliance cycle — bookkeeping, payroll and STP, BAS and IAS, year-end financials, tax returns and SMSF — under your brand and to your standards, then hands it back for your sign-off and lodgement.</p>'
         '<p class="hero-sub" data-tw>The full Australian compliance cycle — prepared and reviewed to your standards, then handed back for your sign-off and lodgement. Always under your brand, never in front of your clients.</p>'
         '<p class="hero-sub">INFITEX is the back office behind Australian accounting practices — from bookkeeping and payroll through to year-end, tax and management reporting. Native to Xero, XPM, MYOB and the tools you already use.</p>'
-        '<div class="hero-cta"><a class="btn btn-primary" href="index.html#contact">Request a pilot</a>'
-        '<a class="btn btn-ghost" data-booking href="index.html#contact">Book a call</a></div>'
+        '<div class="hero-cta"><a class="btn btn-primary" href="contact.html">Request a pilot</a>'
+        '<a class="btn btn-ghost" data-booking href="contact.html">Book a call</a></div>'
         '<div class="hero-paths" style="margin-top:18px"><span class="path-chip" style="border-color:var(--accent);color:var(--accent)"><b>For practices</b></span>'
         '<a class="path-chip" href="industry.html">Run a business instead? <b>For business →</b></a></div>'
         '</div>'
@@ -577,19 +569,16 @@ def build_outsourcing():
         ]) +
         '</div></section>')
 
-    scope = ('<div class="grid grid-3">'
-        + card("doc", "Bookkeeping &amp; reconciliations", "Accurate, current books with bank and ledger reconciliations.")
-        + card("doc", "Accounts payable &amp; receivable", "Bills and invoices processed, matched and followed up.")
-        + card("users", "Payroll &amp; STP", "Pay runs prepared and Single Touch Payroll ready for your lodgement.")
-        + card("doc", "BAS &amp; IAS preparation", "Activity statements drafted for your review — you lodge and sign off.")
-        + card("doc", "Year-end financials", "Financial statements prepared to your templates and standards.")
-        + card("doc", "Company &amp; trust tax returns", "Returns prepared; your registered agents review, sign and lodge.")
-        + card("shield", "SMSF accounts (BGL/Class)", "Self-managed super fund accounts and compliant workpapers.")
-        + card("check", "Workpapers", "Clean, traceable workpapers behind every job for easy review.")
-        + card("clock", "Overflow &amp; peak cover", "Extra capacity for busy periods, leave cover or backlog clear-outs.")
-        + '</div>')
-    s_scope = section("scope", "Scope of work", "Everything across the compliance cycle",
-        "Hand over as much or as little as you like — from a single work type to the whole cycle.", scope)
+    scope = ('<ul class="cycle-list cycle-list--2col">'
+        '<li><span class="mark">01</span><div><b>Bookkeeping &amp; reconciliations</b><span>Day-to-day books kept accurate, coded and current.</span></div></li>'
+        '<li><span class="mark">02</span><div><b>Accounts payable &amp; receivable</b><span>Bills and invoices processed, matched and chased.</span></div></li>'
+        '<li><span class="mark">03</span><div><b>Payroll &amp; STP</b><span>Pay runs prepared and Single Touch Payroll ready for lodgement.</span></div></li>'
+        '<li><span class="mark">04</span><div><b>BAS / IAS preparation</b><span>Activity statements drafted for your review and lodgement.</span></div></li>'
+        '<li><span class="mark">05</span><div><b>Year-end financials &amp; tax</b><span>Financial statements and company/trust returns prepared to your standards.</span></div></li>'
+        '<li><span class="mark">06</span><div><b>SMSF &amp; workpapers</b><span>SMSF accounts in BGL/Class with clean, traceable workpapers.</span></div></li>'
+        '</ul>')
+    s_scope = section("scope", "Scope of work", "From source documents to sign-off-ready",
+        "Hand over as much or as little as you like — from a single work type to the whole compliance cycle, so your team can focus on advice, relationships and growth.", scope)
 
     job = ('<div class="jobtable-wrap">'
         '<table class="jobtable"><caption>Recurring work</caption>'
@@ -642,7 +631,10 @@ def build_outsourcing():
         items=[TESTIMONIALS[0], TESTIMONIALS[1], TESTIMONIALS[5]],
         title="Practices that trust us with the work", alt=True)
 
-    body = crumb + hero + s_scope + s_cycle + s_how + s_sec + s_test + s_cta
+    cyc_flow = ''
+    s_flow = ''
+
+    body = alt_sections(crumb + hero + s_scope + s_cycle + s_how + s_sec + dates_section(alt=True) + s_test + s_cta)
     service_ld = json.dumps({
         "@context": "https://schema.org", "@type": "Service",
         "serviceType": "Accounting and bookkeeping outsourcing (white-label)",
@@ -680,8 +672,8 @@ def build_industry():
         '<p class="answer-lede">For Australian businesses, INFITEX runs a dedicated outsourced finance function — bookkeeping, payroll and STP, accounts payable and receivable, management reporting, budgeting, cash-flow forecasting and Virtual CFO — on your software, with named people, while lodgement stays with you or your registered BAS or tax agent.</p>'
         '<p class="hero-sub" data-tw>A dedicated finance function for Australian businesses, without the overhead of building one in-house. We run the day-to-day books, the monthly reporting and the strategic numbers — and coordinate lodgement through a registered BAS or tax agent.</p>'
         '<p class="hero-sub">INFITEX is the finance team behind Australian businesses — from bookkeeping and payroll through to management reporting and Virtual CFO. Native to Xero, XPM, MYOB and the tools you already use.</p>'
-        '<div class="hero-cta"><a class="btn btn-primary" href="index.html#contact">Request a pilot</a>'
-        '<a class="btn btn-ghost" data-booking href="index.html#contact">Book a 15-min call</a></div>'
+        '<div class="hero-cta"><a class="btn btn-primary" href="contact.html">Request a pilot</a>'
+        '<a class="btn btn-ghost" data-booking href="contact.html">Book a 15-min call</a></div>'
         '<div class="hero-paths" style="margin-top:18px"><span class="path-chip" style="border-color:var(--accent);color:var(--accent)"><b>For business</b></span>'
         '<a class="path-chip" href="outsourcing.html">Run an accounting practice? <b>For practices →</b></a></div>'
         '</div>'
@@ -766,19 +758,9 @@ def build_industry():
         + feat("shield", "Confidentiality agreements", "Clear data-handling rules for your financial information.")
         + feat("cog", "ISO 27001 alignment (on roadmap)", "Aligning controls to ISO 27001; not yet certified.")
         + '</ul>')
-    sec_visual = ('<div class="sec-visual" aria-hidden="true">'
-        '<svg viewBox="0 0 320 300" role="img" xmlns="http://www.w3.org/2000/svg">'
-        '<rect x="20" y="20" width="280" height="260" rx="18" fill="var(--bg-3)" stroke="var(--line)"/>'
-        '<path d="M160 60l54 22v40c0 38-26 64-54 78-28-14-54-40-54-78V82l54-22z" fill="none" stroke="var(--accent)" stroke-width="3"/>'
-        '<path d="M138 150l16 16 30-34" fill="none" stroke="var(--positive)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>'
-        '<rect x="64" y="232" width="192" height="10" rx="5" fill="var(--line-2)"/>'
-        '<rect x="64" y="232" width="120" height="10" rx="5" fill="var(--accent)"/>'
-        '<circle cx="92" cy="96" r="6" fill="var(--accent-2)"/><circle cx="228" cy="96" r="6" fill="var(--accent-2)"/>'
-        '</svg>'
-        '<p class="sec-cap">Role-based access, independent review and confidentiality by design.</p></div>')
     s_sec = section("security", "Security", "Your financial data, handled carefully",
         "The same controls apply whether you take a single role or a full finance team.",
-        '<div class="split-2 split-2--rev">%s%s</div>' % (sec_feats, sec_visual))
+        security_split(sec_feats, "Role-based access, independent review and confidentiality by design."))
 
     # Why INFITEX — finance team that feels in-house (from reference, AU-aligned)
     why = ('<div class="grid grid-2">'
@@ -799,7 +781,7 @@ def build_industry():
         items=[TESTIMONIALS[3], TESTIMONIALS[2], TESTIMONIALS[4]],
         title="Businesses that run on our numbers")
 
-    body = crumb + hero + s_ind + s_what + s_vcfo + s_how + s_eng + s_sec + s_why + s_test + s_cta
+    body = alt_sections(crumb + hero + s_ind + s_what + s_vcfo + s_how + s_eng + s_sec + s_why + dates_section(alt=True) + s_test + s_cta)
     service_ld = json.dumps({
         "@context": "https://schema.org", "@type": "Service",
         "serviceType": "Outsourced accounting, finance and Virtual CFO services",
@@ -823,8 +805,8 @@ def build_digitech():
         '<h1>Look as sharp <span class="accent">online</span> as your work</h1>'
         '<p class="answer-lede">Digitech is the INFITEX web division for Australian accounting and bookkeeping practices, delivering fast, accessible websites plus domains, hosting, business email, SEO and Google Business Profile setup — one partner for everything client-facing online.</p>'
         '<p class="hero-sub" data-tw>Practical digital services for accounting and bookkeeping practices — websites, domains, hosting, business email, SEO and Google Business Profile. One partner, fewer vendors to juggle.</p>'
-        '<div class="hero-cta"><a class="btn btn-primary" href="index.html#contact">Get in touch</a>'
-        '<a class="btn btn-ghost" data-booking href="index.html#contact">Book a call</a></div>'
+        '<div class="hero-cta"><a class="btn btn-primary" href="contact.html">Get in touch</a>'
+        '<a class="btn btn-ghost" data-booking href="contact.html">Book a call</a></div>'
         '</div></section>')
 
     serv = ('<div class="grid grid-3">'
@@ -981,9 +963,9 @@ def build_digitech():
     s_cta = '<section class="section" id="cta"><div class="shell">%s</div></section>' % cta_band(
         "Ready to refresh your online presence?",
         "Tell us where you are today and where you'd like to be. We'll suggest a practical next step.",
-        primary=("Get in touch", "index.html#contact"))
+        primary=("Get in touch", "contact.html"))
 
-    body = crumb + hero + s_serv + s_incl + s_device + s_found + s_proc + s_care + s_why + s_viz + s_cta
+    body = alt_sections(crumb + hero + s_serv + s_incl + s_device + s_found + s_proc + s_care + s_why + s_viz + s_cta)
     service_ld = json.dumps({
         "@context": "https://schema.org", "@type": "Service",
         "serviceType": "Digital services for accounting practices (web, email, SEO)",
@@ -1161,14 +1143,14 @@ def build_sitemap_html():
     crumb = '<div class="shell"><nav class="crumbs" aria-label="Breadcrumb"><a href="index.html">Home</a> / <span>Sitemap</span></nav></div>'
     groups = [
         ("Main pages", [("Home", "index.html"), ("For Practices", "outsourcing.html"),
-                        ("For Business", "industry.html"), ("Digitech", "digitech.html")]),
+                        ("For Business", "industry.html"), ("Digitech", "digitech.html"), ("About", "about.html"), ("Contact", "contact.html")]),
         ("Home sections", [("Software stack", "index.html#stack"), ("Divisions", "index.html#divisions"),
                            ("How it works", "outsourcing.html#how"), ("Engagement models", "index.html#engagement"),
                            ("Security", "index.html#security"), ("Savings calculator", "index.html#calculator"),
-                           ("Key Australian dates", "index.html#dates"), ("About", "index.html#about"),
-                           ("FAQ", "index.html#faq"), ("Contact", "index.html#contact")]),
+                           ("About", "about.html"),
+                           ("FAQ", "index.html#faq"), ("Contact", "contact.html")]),
         ("Outsourcing", [("Scope of work", "outsourcing.html#scope"), ("Jobs & frequency", "outsourcing.html#cycle"),
-                         ("Security", "outsourcing.html#security")]),
+                         ("How it works", "outsourcing.html#how"), ("Key Australian dates", "outsourcing.html#dates"), ("Security", "outsourcing.html#security")]),
         ("Legal", [("Privacy Policy", "privacy.html"), ("Terms of Use", "terms.html")]),
     ]
     blocks = ""
@@ -1185,6 +1167,68 @@ def build_sitemap_html():
     return page("sitemap.html", "Sitemap — INFITEX Global Advisory",
         "A human-readable sitemap of the INFITEX Global Advisory website.", body, graph)
 
+# ================================================================ ABOUT (dedicated page)
+def build_about():
+    crumb = '<div class="shell"><nav class="crumbs" aria-label="Breadcrumb"><a href="index.html">Home</a> / <span>About</span></nav></div>'
+    hero = ('<section class="hero"><div class="shell">'
+        '<span class="eyebrow">About INFITEX Global Advisory</span>'
+        '<h1>A quiet, reliable <span class="accent">extension</span> of your practice</h1>'
+        '<p class="answer-lede">INFITEX Global Advisory is an India-based, white-label accounting outsourcing and Digitech partner built specifically for Australian accounting and bookkeeping practices and the businesses they serve. We prepare and process to your standards, while your practice keeps the client, the lodgement and the sign-off.</p>'
+        '<div class="hero-cta"><a class="btn btn-primary" href="contact.html">Request a pilot</a>'
+        '<a class="btn btn-ghost" data-booking href="contact.html">Book a 15-min call</a></div>'
+        '</div></section>')
+
+    prose = ('<div class="about-prose prose">'
+        '<p>INFITEX Global Advisory is an India-based accounting outsourcing and Digitech partner built specifically for Australian accounting and bookkeeping practices and the businesses they serve. We exist to be the dependable, accountable team behind your team — and we have built our reputation one carefully delivered job at a time.</p>'
+        '<p>Our leadership and senior reviewers bring more than eight years of hands-on Australian compliance experience, with people who have worked the full cycle of a practice — from data entry and bank reconciliations through to BAS, year-end financials, company and trust returns and SMSF. We understand how an Australian practice actually runs at month-end and through the BAS and tax-season peaks, because we have lived those deadlines. That practitioner mindset shapes everything: clean workpapers, sensible coding, sound judgement on what to query, and work that is genuinely ready for your review rather than half-finished.</p>'
+        '<p>We are deliberately not a tax or BAS agent. Our job is to prepare and process accurately, to your standards and templates, so your registered professionals can review, sign off and lodge with confidence. That line never blurs — your practice keeps the client relationship, the professional judgement, the lodgement and the sign-off, every time.</p>'
+        '<p>We work natively in the software you already use — Xero, XPM, MYOB, QuickBooks, Reckon, BGL, Class, Karbon, Dext, Hubdoc and FYI Docs — so there is no migration and no retraining of your team. A named, accountable individual (or a dedicated team) is assigned to your practice, supported by an independent maker–checker review on every job, role-based least-privilege access and signed confidentiality. We are aligning our controls to ISO 27001 as a direction of travel.</p>'
+        '<p>Practices and businesses choose us for three reasons: the quality and traceability of the work, plain-English communication without jargon or surprises, and the overnight rhythm the India–Australia time difference makes possible — work sent at the close of your day is reviewed and ready for your morning, smoothing peak-period workloads without adding local headcount, recruitment risk or permanent overhead.</p>'
+        '</div>'
+        '<div class="grid grid-2 about-cards">'
+        '<div class="card"><div class="ico">%s</div><h3>What we are</h3><p>A white-label preparation and processing team, native to your software, working under your brand and your sign-off.</p></div>'
+        '<div class="card"><div class="ico">%s</div><h3>What we are not</h3><p>We are not a registered Australian tax or BAS agent, and we never contact your clients. Lodgement and sign-off stay with your practice.</p></div>'
+        '</div>') % (ico("users"), ico("shield"))
+    s_about = section("about", "Who we are", "Built for Australian practices", "", prose)
+
+    vmb = ('<div class="vmb-grid">'
+        '<article class="vmb-card"><div class="ico">%s</div><h3>Our vision</h3>'
+        '<p>To be the most trusted offshore finance and Digitech partner for Australian practices and businesses — invisible to your clients, indispensable to you.</p></article>'
+        '<article class="vmb-card"><div class="ico">%s</div><h3>Our mission</h3>'
+        '<p>To give every practice dependable capacity and clarity — accurate preparation, on time, to your standards — so your people are free to advise, grow and look after clients.</p></article>'
+        '<article class="vmb-card"><div class="ico">%s</div><h3>What we believe</h3>'
+        '<p>That the compliance line is sacred, that people deserve named and accountable teams, and that good work plus plain-English communication beats hype every time.</p></article>'
+        '</div>') % (ico("target"), ico("bolt"), ico("check"))
+    s_vmb = section("vmb", "Vision, mission &amp; values", "What we stand for", "", vmb, alt=True)
+
+    s_cta = '<section class="section" id="cta"><div class="shell">%s</div></section>' % cta_band(
+        "Start with a low-risk pilot",
+        "Pick a small, defined scope. See the quality, the communication and the turnaround for yourself before you scale.")
+
+    body = alt_sections(crumb + hero + s_about + s_vmb + s_cta)
+    graph = '{"@context":"https://schema.org","@graph":[%s,%s]}' % (
+        ORG_LD, breadcrumb([("Home", "index.html"), ("About", "about.html")]))
+    return page("about.html",
+        "About INFITEX Global Advisory | White-label accounting outsourcing",
+        "About INFITEX Global Advisory — an India-based, white-label accounting outsourcing and Digitech partner for Australian practices and businesses. Our vision, mission and values.",
+        body, graph)
+
+# ================================================================ CONTACT (dedicated page)
+def build_contact():
+    crumb = '<div class="shell"><nav class="crumbs" aria-label="Breadcrumb"><a href="index.html">Home</a> / <span>Contact</span></nav></div>'
+    hero = ('<section class="hero"><div class="shell">'
+        '<span class="eyebrow">Contact</span>'
+        '<h1>Talk to us about your <span class="accent">practice</span></h1>'
+        '<p class="answer-lede">Tell us what you need help with and we will come back to you by email — no obligation, and no pressure to commit. Prefer chat or a quick call? Use WhatsApp, book a time, or email us directly.</p>'
+        '</div></section>')
+    body = alt_sections(crumb + hero + contact_section(page_mode=True))
+    graph = '{"@context":"https://schema.org","@graph":[%s,%s]}' % (
+        ORG_LD, breadcrumb([("Home", "index.html"), ("Contact", "contact.html")]))
+    return page("contact.html",
+        "Contact INFITEX Global Advisory | Outsourced accounting, Australia",
+        "Contact INFITEX Global Advisory — white-label accounting outsourcing and Digitech for Australian practices and businesses. Send an enquiry, WhatsApp, book a call or email us.",
+        body, graph)
+
 # ================================================================ write all
 def write(fn, content):
     with open(OUT + "/" + fn, "w", encoding="utf-8") as f:
@@ -1196,6 +1240,8 @@ if __name__ == "__main__":
     write("outsourcing.html", build_outsourcing())
     write("industry.html", build_industry())
     write("digitech.html", build_digitech())
+    write("about.html", build_about())
+    write("contact.html", build_contact())
     write("privacy.html", build_privacy())
     write("terms.html", build_terms())
     write("sitemap.html", build_sitemap_html())

@@ -489,6 +489,36 @@
   })();
 
   /* =======================================================================
+     TESTIMONIALS SLIDER (4 per row, auto-advancing)
+     ===================================================================== */
+  $$("[data-tslider]").forEach(function(root){
+    var vp=$(".tslider-viewport",root), track=$(".tslider-track",root);
+    var dotsWrap=$("[data-tdots]",root), prevB=$("[data-tprev]",root), nextB=$("[data-tnext]",root);
+    if(!vp||!track||!dotsWrap) return;
+    var pages=1, cur=0, timer=null, DUR=5000, hovered=false, st=null, rt=null;
+    function pageW(){ return vp.clientWidth||1; }
+    function calcPages(){ return Math.max(1, Math.round(track.scrollWidth/pageW())); }
+    function goTo(i,manual){ cur=((i%pages)+pages)%pages;
+      vp.scrollTo({left:cur*pageW(), behavior:reduceMotion?"auto":"smooth"}); if(manual) restart(); }
+    function sync(){ var c=Math.round(vp.scrollLeft/pageW()); if(c>pages-1)c=pages-1; if(c<0)c=0; cur=c;
+      Array.prototype.forEach.call(dotsWrap.children,function(d,k){ d.classList.toggle("on",k===cur); }); }
+    function buildDots(){ pages=calcPages(); dotsWrap.innerHTML="";
+      for(var i=0;i<pages;i++){ (function(i){ var b=document.createElement("button"); b.type="button";
+        b.setAttribute("aria-label","Show reviews "+(i+1)); b.addEventListener("click",function(){ goTo(i,true); });
+        dotsWrap.appendChild(b); })(i); } sync(); }
+    function restart(){ if(timer)clearTimeout(timer); if(reduceMotion||hovered||pages<2) return; timer=setTimeout(function(){ goTo(cur+1); },DUR); }
+    if(prevB) prevB.addEventListener("click",function(){ goTo(cur-1,true); });
+    if(nextB) nextB.addEventListener("click",function(){ goTo(cur+1,true); });
+    vp.addEventListener("scroll",function(){ clearTimeout(st); st=setTimeout(function(){ sync(); restart(); },120); });
+    root.addEventListener("mouseenter",function(){ hovered=true; if(timer)clearTimeout(timer); });
+    root.addEventListener("mouseleave",function(){ hovered=false; restart(); });
+    root.addEventListener("focusin",function(){ hovered=true; if(timer)clearTimeout(timer); });
+    root.addEventListener("focusout",function(){ hovered=false; restart(); });
+    window.addEventListener("resize",function(){ clearTimeout(rt); rt=setTimeout(buildDots,200); });
+    buildDots(); restart();
+  });
+
+  /* =======================================================================
      SITE SEARCH
      ===================================================================== */
   var SEARCH_INDEX=window.INFITEX_SEARCH||[];
