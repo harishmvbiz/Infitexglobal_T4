@@ -364,7 +364,7 @@ def build_home():
     hero = ('<section class="hero hero-grid" id="top"><div class="shell"><div class="hero-inner">'
         '<div>'
         '<span class="eyebrow">Outsourced accounting, finance &amp; Virtual CFO · Australia</span>'
-        '<h1>A finance team that works to <span class="accent">your</span> standards.</h1>'
+        '<h1><span class="accent">Your</span> standards. Our expertise.</h1>'
         '<p class="answer-lede">INFITEX Global Advisory is an India-based, white-label accounting and bookkeeping outsourcing partner for Australian accounting practices and businesses — covering bookkeeping, payroll and STP, BAS, year-end, tax, SMSF, management reporting and Virtual CFO, while your practice keeps lodgement and sign-off.</p>'
         '<div class="hero-cta"><a class="btn btn-primary" href="contact.html">Request a pilot</a>'
         '<a class="btn btn-ghost" data-booking href="contact.html">Book a 15-min call</a></div>'
@@ -461,16 +461,26 @@ def build_home():
     s_dig = section("digitech", "Digitech", "Look as sharp online as your work",
         "Our secondary division handles the digital side so you don't have to juggle multiple vendors.", dig)
 
+    _bprev = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M15 18l-6-6 6-6"/></svg>'
+    _bnxt = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M9 6l6 6-6 6"/></svg>'
     soft_savings = ('<div class="soft-savings">'
         '<p class="eyebrow" style="margin-bottom:14px">Beyond the dollars</p>'
-        '<div class="grid grid-4">'
+        '<div class="tslider tslider--2up" data-tslider>'
+        '<div class="tslider-viewport"><div class="tslider-track">'
         + card("bolt", "Fewer payroll panics", "Pay runs and STP handled on a steady rhythm — no Friday-night scramble before a deadline.")
         + card("shield", "Lower compliance tension", "BAS, IAS and super dates tracked and prepared early, so nothing sneaks up on you.")
         + card("clock", "Hours back in your week", "Routine processing leaves your desk, freeing senior people for advice and client time.")
         + card("users", "Less hiring stress", "Add capacity without recruiting, onboarding or carrying permanent overhead through quiet months.")
-        + '</div>'
+        + card("check", "Consistent, reviewed output", "Every job goes through maker–checker review, so what reaches you is clean and traceable.")
+        + card("trend", "Capacity that flexes", "Scale up for busy periods and back down when it quietens — without long lock-in or fixed overhead.")
+        + '</div></div>'
+        '<div class="tslider-controls">'
+        '<button class="icon-btn tslider-arrow" type="button" data-tprev aria-label="Previous benefits">%s</button>'
+        '<div class="tslider-dots" data-tdots></div>'
+        '<button class="icon-btn tslider-arrow" type="button" data-tnext aria-label="Next benefits">%s</button>'
+        '</div></div>'
         '<p class="note" style="margin-top:16px">Harder to put a number on — but often the first thing practices say they notice.</p>'
-        '</div>')
+        '</div>') % (_bprev, _bnxt)
     s_calc = section("calculator", "Savings calculator", "Estimate what outsourcing could free up",
         "Move the sliders for an indicative annual range in AUD. It's a guide to start a conversation, not a quote.",
         calculator() + soft_savings, alt=True)
@@ -551,7 +561,7 @@ def build_outsourcing():
     hero = ('<section class="hero"><div class="shell hero-2col">'
         '<div class="hero-copy">'
         '<span class="eyebrow">Who we help · Accounting practices</span>'
-        '<h1>Your white-label <span class="accent">compliance</span> team</h1>'
+        '<h1>Your outsourced <span class="accent">compliance</span> team.</h1>'
         '<p class="answer-lede">For Australian accounting practices, INFITEX prepares and reviews the full compliance cycle — bookkeeping, payroll and STP, BAS and IAS, year-end financials, tax returns and SMSF — under your brand and to your standards, then hands it back for your sign-off and lodgement.</p>'
         '<p class="hero-sub" data-tw>The full Australian compliance cycle — prepared and reviewed to your standards, then handed back for your sign-off and lodgement. Always under your brand, never in front of your clients.</p>'
         '<p class="hero-sub">INFITEX is the back office behind Australian accounting practices — from bookkeeping and payroll through to year-end, tax and management reporting. Native to Xero, XPM, MYOB and the tools you already use.</p>'
@@ -1221,7 +1231,20 @@ def build_contact():
         '<h1>Talk to us about your <span class="accent">practice</span></h1>'
         '<p class="answer-lede">Tell us what you need help with and we will come back to you by email — no obligation, and no pressure to commit. Prefer chat or a quick call? Use WhatsApp, book a time, or email us directly.</p>'
         '</div></section>')
-    body = alt_sections(crumb + hero + contact_section(page_mode=True))
+    subscribe = ('<section class="section" id="subscribe" aria-labelledby="subscribe-title"><div class="shell">'
+        '<div class="subscribe-block">'
+        '<div class="section-head" style="margin:0">'
+        '<span class="eyebrow">Stay in the loop</span>'
+        '<h2 class="section-title" id="subscribe-title">Australian compliance-dates digest</h2>'
+        '<p class="lead">An occasional, opt-in email with upcoming BAS, IAS, super and tax dates. No spam, unsubscribe anytime.</p></div>'
+        '<form id="subscribeForm" class="fs-form" novalidate>'
+        '<div class="fs-row"><label class="sr-only" for="sub-email">Email</label>'
+        '<input class="input" id="sub-email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@yourfirm.com.au" required>'
+        '<button type="submit" class="btn btn-primary">Subscribe</button></div>'
+        '<label class="optin"><input type="checkbox" required><span>I agree to receive the compliance-dates digest and accept the <a href="privacy.html">Privacy</a> terms. I can unsubscribe anytime (Spam Act 2003 compliant).</span></label>'
+        '<p class="form-status" id="subStatus" role="status"></p>'
+        '</form></div></div></section>')
+    body = alt_sections(crumb + hero + contact_section(page_mode=True) + subscribe)
     graph = '{"@context":"https://schema.org","@graph":[%s,%s]}' % (
         ORG_LD, breadcrumb([("Home", "index.html"), ("Contact", "contact.html")]))
     return page("contact.html",
